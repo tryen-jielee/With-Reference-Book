@@ -1277,16 +1277,6 @@
 
     <div class="card">
       <div class="card-title"><span class="bar"></span> ACCEPTABILITY STANDARD — CHAPTER / SUBCHAPTER LOOKUP</div>
-      <div class="accept-setup">
-        <div class="field">
-          <label>PDF file location</label>
-          <input id="acceptPdfPath" type="text" placeholder="e.g. ipc-a-610.pdf, or a full https:// URL" autocomplete="off">
-          <div class="subhint">Place your own copy of the standard next to this page (or host it), then point this field at it. Nothing is bundled with this tool — the menu below just knows which page each section starts on.</div>
-        </div>
-        <div class="field" style="flex:0 0 140px;">
-          <button class="btn btn-primary" id="acceptLoadBtn" style="width:100%; justify-content:center;">Load</button>
-        </div>
-      </div>
       <div id="acceptStatus" class="accept-status"></div>
     </div>
 
@@ -4068,10 +4058,9 @@ function createLotPanel(cfg){
 
 <script>
 // ================= Acceptability Lookup (chapter/subchapter PDF nav) =================
-// This does NOT ship or embed any copyrighted standard. It only stores a chapter/
-// subchapter outline (numbers, titles, and the page each section starts on) and
-// points a plain <iframe> at a PDF file path/URL that YOU supply below. Nothing
-// about the document's actual content is stored here.
+// Points a plain <iframe> at the standard's PDF file, which must sit next to this
+// HTML file (same folder) under the exact name below. This outline just knows which
+// page each chapter/subchapter starts on.
 (function(){
   // level: 1 = chapter, 2 = subchapter, 3 = sub-subchapter. page = physical PDF page number.
   const TOC = [
@@ -4118,7 +4107,7 @@ function createLotPanel(cfg){
     [2,'6.9','Turrets and Straight Pins',105],
     [2,'6.10','Bifurcated',108],
     [2,'6.11','Slotted',114],
-    [2,'6.12','Pierced/Perforated',113],
+    [2,'6.12','Pierced/Perforated',116],
     [2,'6.13','Hook',119],
     [2,'6.14','Solder Cups',122],
     [2,'6.15','AWG 30 and Smaller Diameter Wires – Lead/Wire Placement',125],
@@ -4195,10 +4184,6 @@ function createLotPanel(cfg){
     [1,'Index','Index',411]
   ];
 
-  const STORAGE_KEY = 'vtecs_oqa_accept_pdf_path';
-
-  const pathInput   = document.getElementById('acceptPdfPath');
-  const loadBtn     = document.getElementById('acceptLoadBtn');
   const statusEl    = document.getElementById('acceptStatus');
   const treeEl      = document.getElementById('acceptTree');
   const searchEl    = document.getElementById('acceptSearch');
@@ -4319,12 +4304,7 @@ function createLotPanel(cfg){
   }
 
   function renderViewer(){
-    if(!currentPdfPath){
-      viewBody.outerHTML = '<div id="acceptViewBody" class="accept-view-placeholder">Enter the location of your PDF above and click Load first.</div>';
-      openNewTabBtn.disabled = true;
-      return;
-    }
-    if(!currentLeaf){
+    if(!currentPdfPath || !currentLeaf){
       return;
     }
     const url = currentPdfPath + '#page=' + currentLeaf.page + '&view=FitH';
@@ -4337,31 +4317,15 @@ function createLotPanel(cfg){
     openNewTabBtn.disabled = false;
   }
 
-  // ---------- Loading / remembering the PDF path ----------
   function setStatus(msg, cls){
     statusEl.textContent = msg;
     statusEl.className = 'accept-status' + (cls ? ' ' + cls : '');
   }
 
-  function loadPdfPath(pathVal){
-    const val = (pathVal || '').trim();
-    if(!val){
-      setStatus('Enter a path or URL to your PDF, then click Load.', 'bad');
-      return;
-    }
-    currentPdfPath = val;
-    localStorage.setItem(STORAGE_KEY, val);
-    setStatus('Loaded: ' + val + ' — pick a chapter or subchapter on the left.', 'ok');
-    if(currentLeaf){
-      renderViewer();
-    } else {
-      const ph = document.getElementById('acceptViewBody');
-      if(ph) ph.innerHTML = 'Pick a chapter or subchapter on the left to jump to that page.';
-    }
-  }
-
-  loadBtn.addEventListener('click', () => loadPdfPath(pathInput.value));
-  pathInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') loadPdfPath(pathInput.value); });
+  // ---------- Point at the PDF sitting next to this HTML file ----------
+  const PDF_FILENAME = 'Acceptability of Electronic Assemblies.pdf';
+  currentPdfPath = encodeURI(PDF_FILENAME);
+  setStatus('IPC-A-610H loaded — pick a chapter or subchapter on the left.', 'ok');
 
   openNewTabBtn.addEventListener('click', () => {
     if(!currentPdfPath || !currentLeaf) return;
@@ -4369,13 +4333,6 @@ function createLotPanel(cfg){
   });
 
   searchEl.addEventListener('input', () => buildTree(searchEl.value));
-
-  // Restore a remembered path on load
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if(saved){
-    pathInput.value = saved;
-    loadPdfPath(saved);
-  }
 
   buildTree('');
 })();
